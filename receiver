@@ -1,0 +1,96 @@
+#!/bin/bash
+
+REPOSITORY="$1"
+BRANCH="$5"
+BUILD_ORG_NAME="dafire"
+
+
+REPO_PATH="~/repo/"
+
+DOCKERFILE="$REPO_PATH/docker/Dockerfile"
+
+
+echo "repo $1 branch $5"
+
+if [ -d "$REPO_PATH" ]; then rm -rf "$REPO_PATH"; fi
+echo "Put repo in src format somewhere."
+mkdir -p "$REPO_PATH" && cat | tar -x -C "$REPO_PATH"
+echo "Building Docker image."
+BASE=`basename $REPOSITORY .git`
+
+if [ "$BRANCH" != "master" ]
+then
+  BASE="$BASE-$BRANCH"
+fi
+echo "Base: $BASE"A
+
+RUN_OPTIONS="-P -d -e CONTAINER_NAME=$BASE"
+
+# Find out the old container ID.
+OLD_ID=$(docker ps | grep "$BASE:latest" | cut -d ' ' -f 1)
+
+IMAGE_ID=$(docker images | grep $BASE | awk '{ print $3 }')
+
+echo "Found old Docker OLD_ID:$OLD_ID IMAGE_ID:$IMAGE_ID"
+
+if [ -e "$DOCKERFILE" ]
+then
+  # Look for the exposed port.
+  INTERNAL_PORT=$(grep -i "^EXPOSE" $DOCKERFILE | cut -d ' ' -f 2)
+  # Build and get the ID.
+  docker build -t $BUILD_ORG_NAME/$BASE $REPO_PATH/docker
+
+  if [ $? -ne 0 ]
+  then
+    echo "Failed build - exiting."
+    exit
+  fi
+  echo "build finished"
+  ID=$(docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE)
+
+  # Get the $PORT from the container.
+  if [ -n "$INTERNAL_PORT" ]
+  then
+    PORT=$(docker port $ID $INTERNAL_PORT | sed 's/0.0.0.0://')
+  fi
+  
+  if [ -z "$PORT" ]
+  then
+    echo "#################################################"
+    echo "Something went wrong, trying again."
+    echo "Killing the container we just launched."
+    docker kill $ID > /dev/null
+    echo "Launching a new one"
+    ID=$(docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE)
+    PORT=$(docker port $ID $INTERNAL_PORT | sed 's/0.0.0.0://')
+    if [ -z "$PORT" ]
+    then
+      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE" | mail -s "$BASE failed to launch on $PUBLIC_IP" $EMAIL_NOTIFICATION
+    else
+      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE" | mail -s "$BASE launched on the second try on $PUBLIC_IP" $EMAIL_NOTIFICATION
+    fi
+    echo "#################################################"
+  else
+    echo "Everything looks good."
+  fi
+
+else
+  echo "There is no Dockerfile present. ($DOCKERFILE)"
+  ls
+  ls docker
+  exit
+fi
+
+# Kill the old container by ID.
+if [ -n "$OLD_ID" ]
+then
+  CONTAINERS=$(docker ps | grep "$IMAGE_ID" | cut -d ' ' -f 1)
+  for container in $CONTAINERS
+  do
+    ID="$container"
+    docker kill "$ID" > /dev/null
+  done
+else
+  echo "Not killing any containers."
+fi
+
