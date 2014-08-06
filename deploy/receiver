@@ -7,8 +7,7 @@ BUILD_ORG_NAME="dafire"
 
 REPO_PATH="~/repo/"
 
-DOCKERFILE="$REPO_PATH/docker/Dockerfile"
-
+DOCKERFILE="$REPO_PATH/Dockerfile"
 
 echo "repo $1 branch $5"
 
@@ -24,6 +23,15 @@ then
 fi
 echo "Base: $BASE"A
 
+mydeploy --base "$BASE"
+
+rc=$?
+if [[ $rc != 0 ]] ; then
+    exit $rc
+fi
+
+exit 1
+
 RUN_OPTIONS="-P -d -e CONTAINER_NAME=$BASE"
 
 # Find out the old container ID.
@@ -38,7 +46,7 @@ then
   # Look for the exposed port.
   INTERNAL_PORT=$(grep -i "^EXPOSE" $DOCKERFILE | cut -d ' ' -f 2)
   # Build and get the ID.
-  docker build -t $BUILD_ORG_NAME/$BASE $REPO_PATH/docker
+  docker build -t $BUILD_ORG_NAME/$BASE $REPO_PATH
 
   if [ $? -ne 0 ]
   then
@@ -65,9 +73,9 @@ then
     PORT=$(docker port $ID $INTERNAL_PORT | sed 's/0.0.0.0://')
     if [ -z "$PORT" ]
     then
-      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE" | mail -s "$BASE failed to launch on $PUBLIC_IP" $EMAIL_NOTIFICATION
+      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE"
     else
-      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE" | mail -s "$BASE launched on the second try on $PUBLIC_IP" $EMAIL_NOTIFICATION
+      echo "docker run $RUN_OPTIONS $BUILD_ORG_NAME/$BASE"
     fi
     echo "#################################################"
   else
@@ -76,9 +84,7 @@ then
 
 else
   echo "There is no Dockerfile present. ($DOCKERFILE)"
-  ls
-  ls docker
-  exit
+  exit 1
 fi
 
 # Kill the old container by ID.
