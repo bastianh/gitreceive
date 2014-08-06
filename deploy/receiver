@@ -4,32 +4,24 @@ REPOSITORY="$1"
 BRANCH="$5"
 BUILD_ORG_NAME="dafire"
 
-
-REPO_PATH="~/repo/"
-
-DOCKERFILE="$REPO_PATH/Dockerfile"
-
-echo "repo $1 branch $5"
-
+REPO_PATH="/home/git/repo/"
 if [ -d "$REPO_PATH" ]; then rm -rf "$REPO_PATH"; fi
-echo "Put repo in src format somewhere."
 mkdir -p "$REPO_PATH" && cat | tar -x -C "$REPO_PATH"
-echo "Building Docker image."
-BASE=`basename $REPOSITORY .git`
 
+BASE=`basename $REPOSITORY .git`
 if [ "$BRANCH" != "master" ]
 then
   BASE="$BASE-$BRANCH"
 fi
-echo "Base: $BASE"A
 
-mydeploy --base "$BASE"
+mydeploy --base "$BASE" create --repo "$REPO_PATH"
 
 rc=$?
 if [[ $rc != 0 ]] ; then
     exit $rc
 fi
 
+echo "DONE"
 exit 1
 
 RUN_OPTIONS="-P -d -e CONTAINER_NAME=$BASE"
