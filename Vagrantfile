@@ -24,7 +24,11 @@ apt-get -y install python3 python3-pip
 ln -sf /vagrant/deploy/gitreceive /usr/bin/gitreceive 
 
 gitreceive init
-ln -fs /vagrant/deploy/receiver /home/git/receiver 
+ln -fs /vagrant/deploy/receiver /home/git/receiver
+
+ln -fs /vagrant/deploy/mydeploy.py /usr/local/bin/mydeploy
+
+pip3 install -r /vagrant/requirements.py 
 
 addgroup git docker
 addgroup vagrant docker

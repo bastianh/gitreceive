@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import click
 import docker
+import os
 
 
 def echo(txt):
@@ -60,7 +61,7 @@ def build():
 @click.option('--repo', help="RepoPath")
 def create(obj, repo):
     c = docker.Client(base_url='unix://var/run/docker.sock',
-                      version='1.12', timeout=10)
+                      version='1.12', timeout=20)
 
     tag = "%s/%s" % (obj.get("build_org"), obj.get("base"))
 
@@ -84,20 +85,34 @@ def create(obj, repo):
     # create container
     echo("Creating Docker Container")
 
-    container = c.create_container(tag, detach=True)
+    container = c.create_container(tag, detach=True,ports=[80, 22])
     click.echo("container %r" % container)
 
-    # start container
-    echo("Starting Container")
-    start = c.start(container.get("Id"))
-    click.echo(start)
+    echo("Configuring Stuff")
+    info = c.inspect_image(tag)
+    binds = {}
+    volumes = info.get("ContainerConfig").get("Volumes")
+    for vol in volumes:
+        vpath = os.path.join(os.getcwd(),"VOLUMES",vol[1:])
+        os.makedirs(vpath, exist_ok=True)
+        binds[vpath] = {
+            'bind': vol,
+            'ro': False
+        }
+    click.echo("Binds %r"%binds)
 
     # stopping old containers
     if len(running_containers):
         echo("Stopping old containers")
-        for container in running_containers:
-            res = c.stop(container)
-            click.echo(res)
+        for cont in running_containers:
+            res = c.stop(cont)
+
+    # start container
+    echo("Starting Container")
+    start = c.start(container.get("Id"),publish_all_ports=True, binds=binds)
+    click.echo(start)
+
+    click.echo(os.getcwd())
 
 
 if __name__ == '__main__':
