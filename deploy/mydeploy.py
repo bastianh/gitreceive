@@ -175,7 +175,7 @@ def gitreceive(obj, repository, basename, nginx):
     if nginx:
         echo("writing nginx config file and reloading nginx")
         nginx.write(create_nginx_config(session, docker))
-        subprocess.call(["sudo", "--non-interactive", "reload_nginx"])
+        subprocess.call(["sudo", "-n", "/etc/init.d/nginx reload"])
 
 
 if __name__ == '__main__':
