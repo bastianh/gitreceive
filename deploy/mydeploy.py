@@ -105,8 +105,6 @@ def gitreceive(obj, repository, basename, revision, nginx):
     with open(os.path.join(repository, "Deploy.yaml")) as f:
         config = yaml.load(f)
 
-    repo = subprocess.check_output(["pwd"], universal_newlines=True)
-
     config["git_version"] = revision
 
     tag = "%s/%s" % (obj.get("build_org"), basename)
@@ -179,12 +177,10 @@ def gitreceive(obj, repository, basename, revision, nginx):
     start = docker.start(container_id, publish_all_ports=False, binds=binds)
     click.echo(start)
 
-    click.echo(os.getcwd())
-
     if nginx:
         echo("writing nginx config file and reloading nginx")
         nginx.write(create_nginx_config(session, docker))
-        subprocess.call(["sudo", "-n", "/etc/init.d/nginx reload"])
+        subprocess.call(["sudo", "-n", "/usr/sbin/nginx", "-s", "reload"])
 
 
 if __name__ == '__main__':
