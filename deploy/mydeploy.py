@@ -100,10 +100,12 @@ def gitreceive(obj, repository, basename, nginx):
     with open(os.path.join(repository, "Deploy.yaml")) as f:
         config = yaml.load(f)
 
-    click.echo("config: %r" % config)
+    repo = subprocess.check_output(["pwd"], universal_newlines=True)
+    print("PWD:", repo)
+
+    config["git_version"] = subprocess.check_output(["git", "describe", "--always", "--tags"], universal_newlines=True)
 
     tag = "%s/%s" % (obj.get("build_org"), basename)
-    name = "mydeploy_%s" % basename
     session = obj.get("db")
 
     # find old running container
@@ -118,7 +120,7 @@ def gitreceive(obj, repository, basename, nginx):
 
     # build docker
     echo('Building Dockerfile')
-    buildout = docker.build(path=repository, tag=tag, quiet=True, nocache=True, rm=True, stream=True)
+    buildout = docker.build(path=repository, tag=tag, quiet=False, nocache=True, rm=True, stream=True)
 
     for l in buildout:
         row = json.loads(l)
@@ -147,7 +149,7 @@ def gitreceive(obj, repository, basename, nginx):
     binds = {}
     volumes = info.get("ContainerConfig").get("Volumes")
     for vol in volumes:
-        vpath = os.path.join(os.getcwd(), "VOLUMES", vol[1:])
+        vpath = os.path.join(os.getcwd(), "VOLUMES", basename, vol[1:])
         os.makedirs(vpath, exist_ok=True)
         binds[vpath] = {
             'bind': vol,
@@ -162,7 +164,7 @@ def gitreceive(obj, repository, basename, nginx):
             dbcontainer = session.query(DbContainer).get(cont)
             if dbcontainer:
                 session.delete(dbcontainer)
-            res = docker.stop(cont)
+            docker.stop(cont)
 
     # start container
     echo("Starting Container")

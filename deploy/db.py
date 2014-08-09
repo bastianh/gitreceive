@@ -5,8 +5,8 @@ from sqlalchemy import Column, String
 from sqlalchemy.orm import sessionmaker
 
 
-def get_engine(path):
-    engine = create_engine('sqlite:////%s' % path, echo=True)
+def get_engine(path, debug=False):
+    engine = create_engine('sqlite:////%s' % path, echo=debug)
     session = sessionmaker(bind=engine)
     return (engine, session)
 
