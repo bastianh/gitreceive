@@ -1,6 +1,7 @@
 #!/bin/bash
 
 REPOSITORY="$1"
+REVISION="$2"
 BRANCH="$5"
 BUILD_ORG_NAME="dafire"
 NGINX_CONFIG="$HOME/nginx_config"
@@ -15,7 +16,7 @@ then
   BASE="$BASE-$BRANCH"
 fi
 
-mydeploy gitreceive --nginx="$NGINX_CONFIG" "$REPO_PATH" "$BASE"
+mydeploy gitreceive --nginx="$NGINX_CONFIG" "$REPO_PATH" "$BASE" "$REVISION"
 
 rc=$?
 if [[ $rc != 0 ]] ; then

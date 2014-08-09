@@ -97,17 +97,17 @@ def nginx(obj):
 @click.pass_obj
 @click.argument('repository', type=click.Path(exists=True, file_okay=False))
 @click.argument('basename')
+@click.argument('revision')
 @click.option('--nginx', type=click.File('w', encoding='utf-8'))
-def gitreceive(obj, repository, basename, nginx):
+def gitreceive(obj, repository, basename, revision, nginx):
     docker = get_docker_client()
 
     with open(os.path.join(repository, "Deploy.yaml")) as f:
         config = yaml.load(f)
 
     repo = subprocess.check_output(["pwd"], universal_newlines=True)
-    print("PWD:", repo)
 
-    config["git_version"] = subprocess.check_output(["git", "describe", "--always", "--tags"], universal_newlines=True)
+    config["git_version"] = revision
 
     tag = "%s/%s" % (obj.get("build_org"), basename)
     session = obj.get("db")
@@ -137,7 +137,7 @@ def gitreceive(obj, repository, basename, nginx):
     # create container
     echo("Creating Docker Container")
 
-    environment = config.get("environment",{})
+    environment = config.get("environment", {})
     environment["DEPLOY_GIT_VERSION"] = config["git_version"]
 
     container = docker.create_container(tag,
