@@ -1,2 +1,8 @@
 click
 docker-py
+pyyaml
+sqlalchemy
+
+#flask
+
+#python-nginx fails import on python3
