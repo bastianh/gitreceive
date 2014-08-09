@@ -64,7 +64,7 @@ def create_nginx_config(session, docker):
         config = json.loads(dbcontainer.config)
         settings = {
             "CONTAINER_IP": inspect["NetworkSettings"]["IPAddress"],
-            "GIT_VERSION": config.get("git_version")
+            "DEPLOY_GIT_VERSION": config.get("git_version")
         }
 
         nginx_server = nginx_config_manager.Server()
@@ -137,10 +137,13 @@ def gitreceive(obj, repository, basename, nginx):
     # create container
     echo("Creating Docker Container")
 
+    environment = config.get("environment",{})
+    environment["DEPLOY_GIT_VERSION"] = config["git_version"]
+
     container = docker.create_container(tag,
                                         detach=True,
                                         ports=config.get("ports"),
-                                        environment=config.get("environment"),
+                                        environment=environment,
                                         name=config.get("name"))
     click.echo("container %r" % container)
     container_id = container.get("Id")
