@@ -61,10 +61,14 @@ def create_nginx_config(session, docker):
             # TODO: start container
             continue
         inspect = docker.inspect_container(dbcontainer.container_id)
-        settings = {"CONTAINER_IP": inspect["NetworkSettings"]["IPAddress"]}
+        config = json.loads(dbcontainer.config)
+        settings = {
+            "CONTAINER_IP": inspect["NetworkSettings"]["IPAddress"],
+            "GIT_VERSION": config.get("git_version")
+        }
 
         nginx_server = nginx_config_manager.Server()
-        ngx = json.loads(dbcontainer.config).get("nginx")
+        ngx = config.get("nginx")
         for keys in ngx.get("keys"):
             for k, v in keys.items():
                 nginx_server.add(nginx_config_manager.Key(k, v.format(**settings)))
