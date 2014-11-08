@@ -67,20 +67,21 @@ def create_nginx_config(session, docker):
             "DEPLOY_GIT_VERSION": config.get("git_version")
         }
 
-        nginx_server = nginx_config_manager.Server()
-        ngx = config.get("nginx")
-        for keys in ngx.get("keys"):
-            for k, v in keys.items():
-                nginx_server.add(nginx_config_manager.Key(k, v.format(**settings)))
-
-        for l, keys_array in ngx.get("locations").items():
-            nginx_location = nginx_config_manager.Location(l)
-            for keys in keys_array:
+        ngxa = config.get("nginx")
+        for ngx in ngxa:
+            nginx_server = nginx_config_manager.Server()
+            for keys in ngx.get("keys"):
                 for k, v in keys.items():
-                    nginx_location.add(nginx_config_manager.Key(k, v.format(**settings)))
-            nginx_server.add(nginx_location)
-        nginx_config.add(nginx_config_manager.Comment("Server %r" % dbcontainer.image))
-        nginx_config.add(nginx_server)
+                    nginx_server.add(nginx_config_manager.Key(k, v.format(**settings)))
+
+            for l, keys_array in ngx.get("locations").items():
+                nginx_location = nginx_config_manager.Location(l)
+                for keys in keys_array:
+                    for k, v in keys.items():
+                        nginx_location.add(nginx_config_manager.Key(k, v.format(**settings)))
+                nginx_server.add(nginx_location)
+            nginx_config.add(nginx_config_manager.Comment("Server %r" % dbcontainer.image))
+            nginx_config.add(nginx_server)
 
     return nginx_config_manager.dumps(nginx_config)
 
